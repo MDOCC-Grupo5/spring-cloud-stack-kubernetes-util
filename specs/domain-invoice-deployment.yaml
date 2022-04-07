@@ -1,22 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: domain-invoice-service
+spec:
+  type: ClusterIP
+  selector:
+    app: invoice-ms
+  ports:
+    - protocol: TCP
+      port: 8080
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: demo-invoices
+  labels:
+    account: domain-invoice-service
+
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: domain-invoice-deployment
   namespace: default
+  annotations:
+    sidecar.istio.io/inject: "true"
   labels:
-    app: invoice-service
+    app: invoice-deployment
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: invoice-service
+      app: invoice-ms
   template:
     metadata:
       labels:
-        app: invoice-service
+        app: invoice-ms
     spec:
+      serviceAccountName: demo-invoices
       containers:
-        - name: invoice-service
+        - name: invoice-ms
           image: ssuazaa08/domain-invoice-service
           imagePullPolicy: Always
           env:
@@ -34,17 +60,3 @@ spec:
               value: postgres-service
           ports:
             - containerPort: 8080
-
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: domain-invoice-service
-spec:
-  type: ClusterIP
-  selector:
-    app: invoice-service
-  ports:
-    - protocol: TCP
-      port: 8080
